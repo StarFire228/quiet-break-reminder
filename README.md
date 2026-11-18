@@ -6,7 +6,7 @@
 
 ## Как работает
 
-- Считает только время, когда ты за компьютером. Если 5 минут не трогать мышь и клавиатуру (отошёл), отсчёт начинается заново.
+- Считает только время, когда ты за компьютером. Если на компьютере играет звук (смотришь видео или стрим), это тоже считается: таймер не сбрасывается, даже если мышь лежит без дела. Отсчёт начинается заново, только если 5 минут нет ни мыши с клавиатурой, ни звука (отошёл). Чтобы не учитывать звук, запусти `razminka.ps1` с ключом `-NoAudioCheck`.
 - Уведомление само пропадает примерно через 25 секунд. В тексте каждый раз новый совет: присесть, размять шею, посмотреть вдаль и т.п.
 - Звук играет отдельно от уведомления, поэтому его слышно, даже когда Windows прячет уведомления во время полноэкранной игры.
 - Работает в фоне без окна консоли. Чистый PowerShell, ничего ставить не нужно.
@@ -47,7 +47,7 @@ A quiet stretch-break reminder for Windows. After every hour of active computer 
 
 ### How it works
 
-- Only time you actually spend at the computer counts. After 5 minutes without mouse/keyboard input (you walked away), the timer resets.
+- Only time you actually spend at the computer counts. Sound playing on the PC (watching a video or a stream) counts as being there too, so the timer keeps going even when the mouse sits still. The timer resets only after 5 minutes with neither input nor sound (you walked away). Run `razminka.ps1` with `-NoAudioCheck` to ignore sound.
 - The notification disappears on its own after about 25 seconds and shows a random stretching tip (texts are in Russian; edit `$tips` in `razminka.ps1` to change them).
 - The sound plays separately from the notification, so you hear it even when Windows hides notifications during fullscreen games.
 - Runs in the background with no console window. Pure PowerShell, nothing to install.

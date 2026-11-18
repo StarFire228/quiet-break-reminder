@@ -19,7 +19,8 @@ $cmd = "conhost.exe --headless powershell.exe -NoProfile -ExecutionPolicy Bypass
 $line = 'CreateObject("WScript.Shell").Run "' + $cmd.Replace('"', '""') + '", 0, False'
 [IO.File]::WriteAllText($vbs, $line, [Text.Encoding]::Unicode)
 
-Start-Process wscript.exe -ArgumentList "`"$vbs`""
+# Через Проводник: напоминалка не привязана к этому окну/сессии и не закроется вместе с ними
+Start-Process explorer.exe -ArgumentList "`"$vbs`""
 
 Write-Host "Готово / Done: напоминание каждые $Minutes мин активной работы."
 Write-Host "Автозапуск / Autostart: $vbs"
