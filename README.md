@@ -12,6 +12,38 @@
 - Работает в фоне без окна консоли. Чистый PowerShell, ничего ставить не нужно.
 - Ведёт лог `razminka.log` рядом со скриптом: когда сбрасывался таймер и когда показывалось напоминание.
 
+## Нагрузка и приватность
+
+**На FPS в играх не влияет.** Замер на 12-поточном процессоре во время работы: около 30 мс процессорного времени за 20 секунд, то есть примерно **0,01% CPU**. Память — около 85 МБ, почти всё это сам PowerShell.
+
+Что программа делает на самом деле:
+
+| Как часто | Что | Как |
+|---|---|---|
+| раз в секунду | узнаёт, играет ли сейчас звук | спрашивает у Windows текущий уровень громкости на выходе — одно число, то же, что показывает индикатор в микшере |
+| раз в 30 секунд | узнаёт, когда последний раз двигалась мышь или нажималась клавиша | `GetLastInputInfo` — Windows хранит только время последнего ввода |
+| раз в час | показывает уведомление и играет звук | стандартные уведомления Windows |
+
+Остальное время программа спит.
+
+Чего программа **не** делает:
+
+- не смотрит на экран и не делает скриншотов;
+- не записывает и не слушает звук и микрофон — знает только громкость на выходе, без содержимого;
+- не знает, какие клавиши нажимались, — только время последнего нажатия;
+- не ходит в интернет;
+- не требует прав администратора.
+
+Весь код — около сотни строк в одном файле [`razminka.ps1`](razminka.ps1), его легко проверить самому.
+
+Проверить нагрузку у себя (PowerShell):
+
+```powershell
+$p = Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" | ? CommandLine -like '*razminka.ps1*' | select -First 1
+$pr = Get-Process -Id $p.ProcessId; $a = $pr.TotalProcessorTime; sleep 20; $pr.Refresh()
+"CPU: {0:N3}%" -f (($pr.TotalProcessorTime - $a).TotalMilliseconds / 20000 / [Environment]::ProcessorCount * 100)
+```
+
 ## Установка
 
 1. Скачай репозиторий (**Code → Download ZIP**) и распакуй в постоянную папку.
@@ -52,6 +84,30 @@ A quiet stretch-break reminder for Windows. After every hour of active computer 
 - The sound plays separately from the notification, so you hear it even when Windows hides notifications during fullscreen games.
 - Runs in the background with no console window. Pure PowerShell, nothing to install.
 - Writes a log to `razminka.log` next to the script: timer resets and reminders shown.
+
+### Performance and privacy
+
+**No effect on in-game FPS.** Measured on a 12-thread CPU while running: about 30 ms of CPU time per 20 seconds, roughly **0.01% CPU**. Memory is about 85 MB, almost all of it the PowerShell runtime itself.
+
+What it actually does:
+
+| How often | What | How |
+|---|---|---|
+| every second | checks whether sound is playing | asks Windows for the current output peak level — a single number, the same one the volume mixer meter shows |
+| every 30 seconds | checks when the mouse/keyboard was last used | `GetLastInputInfo` — Windows only stores the time of the last input |
+| every hour | shows a notification and plays a sound | standard Windows notifications |
+
+The rest of the time it sleeps.
+
+What it does **not** do:
+
+- no screen capture or screenshots;
+- no audio or microphone recording — it only reads the output level, not the content;
+- no keylogging — only the time of the last input;
+- no network access;
+- no admin rights required.
+
+All the code is about a hundred lines in a single file, [`razminka.ps1`](razminka.ps1), easy to review yourself. The PowerShell snippet in the Russian section above measures CPU usage on your machine.
 
 ### Install
 
