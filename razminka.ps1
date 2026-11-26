@@ -90,19 +90,50 @@ public class RzMenuColors : ProfessionalColorTable {
 [Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime] | Out-Null
 $appId = '{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\WindowsPowerShell\v1.0\powershell.exe'
 
-$tips = @(
-    'Встань, потянись вверх, покрути плечами.',
-    'Пройдись пару минут, налей воды.',
-    '10 приседаний и наклоны в стороны.',
-    'Разомни шею: медленные наклоны вперёд и в стороны.',
-    'Посмотри вдаль 20 секунд, дай глазам отдохнуть.',
-    'Встань, потянись к носкам, прогни спину.'
+# Упражнения: что сделать + зачем. Bar = нужен турник. Источники — в README.
+$exercises = @(
+    @{ Do = 'Пройдись 3–5 минут: по квартире, до кухни, налей воды.'; Why = 'Короткие прогулки между сидением снижают сахар и давление.' }
+    @{ Do = '15 приседаний в спокойном темпе.'; Why = 'Самые крупные мышцы тела: разгоняют кровь и забирают сахар из крови.' }
+    @{ Do = '1 минута шагов на месте, колени повыше. Есть лестница — 2–3 пролёта бегом.'; Why = 'Короткие «перекусы» нагрузкой в течение дня улучшают выносливость.' }
+    @{ Do = '10 отжиманий: от пола, стола или стены.'; Why = 'Грудь, руки, плечи. Выносливость в отжиманиях связана со здоровьем сердца.' }
+    @{ Do = '20 подъёмов на носки стоя.'; Why = 'Икры — «второе сердце»: гонят застоявшуюся кровь от ног вверх.' }
+    @{ Do = 'Можно не вставая: 30 раз подними пятки, носки на полу.'; Why = 'Работает камбаловидная мышца — её работа сидя помогает обмену сахара.' }
+    @{ Do = 'Ягодичный мостик лёжа на спине, 15 раз.'; Why = 'Будит ягодицы, которые «выключаются» от сидения, и разгружает поясницу.' }
+    @{ Do = 'Выпад на колено, таз вперёд — по 30 секунд на каждую ногу.'; Why = 'Растягивает мышцы бедра, которые от сидения укорачиваются и тянут поясницу.' }
+    @{ Do = 'Планка 30–45 секунд.'; Why = 'Мышцы корпуса держат спину ровной, когда сидишь.' }
+    @{ Do = 'Втяни подбородок назад («двойной подбородок»), 10 раз по 3 секунды.'; Why = 'Против «компьютерной шеи», когда голова уезжает вперёд к монитору.' }
+    @{ Do = 'Сведи лопатки и подержи 5 секунд, 10 раз.'; Why = 'Укрепляет мышцы между лопатками — против сутулости.' }
+    @{ Do = '15 пожиманий плечами, можно с бутылками воды в руках.'; Why = 'Даже пара минут силовых для плеч в день уменьшала боль в шее у офисных работников.' }
+    @{ Do = 'Посмотри на что-нибудь дальше 6 метров (в окно) 20 секунд.'; Why = 'Глаза отдыхают от экрана вблизи.' }
+    @{ Do = 'Встань, потянись руками вверх, потом наклонись к носкам.'; Why = 'Разгружает спину после долгого сидения в одной позе.' }
+    @{ Do = '10 выпадов на каждую ногу.'; Why = 'Ноги и баланс — силовая без всякого инвентаря.' }
+    @{ Do = '«Стульчик» у стены 30–45 секунд.'; Why = 'Укрепляет бёдра, не нагружая спину.' }
+    @{ Do = 'Разомни запястья: потяни пальцы на себя и от себя по 15 секунд.'; Why = 'Для рук, которые весь день на мышке и клавиатуре.' }
+    @{ Do = '10 кругов плечами и руками вперёд и назад.'; Why = 'Разгоняет кровь в плечах и шее, снимает зажатость.' }
+    @{ Bar = $true; Do = 'Повисни на турнике 20–40 секунд.'; Why = 'Разгружает позвоночник и развивает хват. Сильный хват связан с долголетием.' }
+    @{ Bar = $true; Do = 'Подтянись на турнике 1–5 раз, без надрыва.'; Why = 'Спина и руки — противовес сутулости.' }
+    @{ Bar = $true; Do = 'В висе на турнике подтяни колени к груди, 8 раз.'; Why = 'Пресс и хват за один подход.' }
+    @{ Bar = $true; Do = 'Повисни и сведи лопатки, не сгибая рук: 5 раз по 3 секунды.'; Why = 'Укрепляет мышцы, которые держат плечи на месте.' }
+    @{ Bar = $true; Do = 'Запрыгни наверх турника и медленно опускайся 3–5 секунд, 3 раза.'; Why = 'Лучший путь к первому подтягиванию, если пока не выходит.' }
 )
 
-function Show-Toast([string]$title, [string]$text, [bool]$sound) {
-    $t = [Security.SecurityElement]::Escape($title); $x = [Security.SecurityElement]::Escape($text)
+# «Мешок»: упражнения идут по кругу в случайном порядке и не повторяются, пока не кончатся.
+# Если есть турник, упражнения на нём кладутся дважды — попадаются примерно в каждом третьем напоминании.
+$bag = New-Object System.Collections.ArrayList
+function Get-NextExercise([bool]$hasBar) {
+    if ($bag.Count -eq 0) {
+        $pool = @($exercises | Where-Object { -not $_.Bar })
+        if ($hasBar) { $b = @($exercises | Where-Object { $_.Bar }); $pool += $b + $b }
+        foreach ($e in ($pool | Sort-Object { Get-Random })) { [void]$bag.Add($e) }
+    }
+    $e = $bag[0]; $bag.RemoveAt(0)
+    $e
+}
+
+function Show-Toast([string]$title, [string]$text, [string]$note, [bool]$sound) {
+    $t = [Security.SecurityElement]::Escape($title); $x = [Security.SecurityElement]::Escape($text); $n = [Security.SecurityElement]::Escape($note)
     $doc = New-Object Windows.Data.Xml.Dom.XmlDocument
-    $doc.LoadXml("<toast duration=""long""><visual><binding template=""ToastGeneric""><text>$t</text><text>$x</text></binding></visual><audio silent=""true""/></toast>")
+    $doc.LoadXml("<toast duration=""long""><visual><binding template=""ToastGeneric""><text>$t</text><text>$x</text><text>$n</text></binding></visual><audio silent=""true""/></toast>")
     [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier($appId).Show((New-Object Windows.UI.Notifications.ToastNotification $doc))
     # Звук отдельно — его слышно, даже если Windows спрятала уведомление (игра на весь экран)
     if ($sound) {
@@ -111,11 +142,12 @@ function Show-Toast([string]$title, [string]$text, [bool]$sound) {
     }
 }
 
-function Show-Reminder([int]$min, [bool]$sound) {
-    Show-Toast 'Пора размяться' "Ты сидишь уже $min мин. $(Get-Random -InputObject $tips)" $sound
+function Show-Reminder([int]$min, [bool]$sound, [bool]$hasBar) {
+    $e = Get-NextExercise $hasBar
+    Show-Toast "Пора размяться · ты за компом $min мин" $e.Do $e.Why $sound
 }
 
-if ($Test) { Show-Reminder $Minutes $true; Start-Sleep 2; exit }
+if ($Test) { Show-Reminder $Minutes $true $true; Start-Sleep 2; exit }
 
 # ---------- один экземпляр ----------
 # Повторный запуск (ярлык в «Пуске») не плодит копии, а открывает настройки у уже работающей.
@@ -136,7 +168,7 @@ function Write-Log($msg) {
 }
 
 function Read-Settings {
-    $c = [ordered]@{ Minutes = $Minutes; IdleResetMinutes = $IdleResetMinutes; AudioCheck = (-not $NoAudioCheck); Sound = $true }
+    $c = [ordered]@{ Minutes = $Minutes; IdleResetMinutes = $IdleResetMinutes; AudioCheck = (-not $NoAudioCheck); Sound = $true; PullupBar = $false }
     if (Test-Path $settingsPath) {
         try {
             $j = Get-Content $settingsPath -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -147,6 +179,7 @@ function Read-Settings {
     $c.IdleResetMinutes = [Math]::Min(30, [Math]::Max(1, [int]$c.IdleResetMinutes))
     $c.AudioCheck = [bool]$c.AudioCheck
     $c.Sound = [bool]$c.Sound
+    $c.PullupBar = [bool]$c.PullupBar
     $c
 }
 
@@ -190,7 +223,7 @@ function Get-Status {
 }
 
 function Invoke-Remind {
-    try { Show-Reminder $S.Cfg.Minutes $S.Cfg.Sound; Write-Log 'напоминание показано' }
+    try { Show-Reminder $S.Cfg.Minutes $S.Cfg.Sound $S.Cfg.PullupBar; Write-Log 'напоминание показано' }
     catch { Write-Log "ошибка показа: $_" }
     $S.Active = 0.0; $S.LastLoggedMin = 0
 }
@@ -367,6 +400,17 @@ $xaml = @'
       <Border Style="{StaticResource Row}">
         <Grid>
           <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock Text="Есть турник"/>
+            <TextBlock Text="добавить вис и подтягивания в упражнения" Style="{StaticResource SubText}"/>
+          </StackPanel>
+          <CheckBox x:Name="PullupToggle" Grid.Column="1" Style="{StaticResource Toggle}"/>
+        </Grid>
+      </Border>
+
+      <Border Style="{StaticResource Row}">
+        <Grid>
+          <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
           <TextBlock Text="Запускать вместе с Windows" VerticalAlignment="Center"/>
           <CheckBox x:Name="AutoToggle" Grid.Column="1" Style="{StaticResource Toggle}"/>
         </Grid>
@@ -422,7 +466,7 @@ function Open-Settings {
     $w = [Windows.Markup.XamlReader]::Parse($xaml)
     $u = @{}
     foreach ($n in 'Header','Pill','PillText','LeftLabel','LeftText','BarTrack','BarFill','IntervalSlider','IntervalText','IdleSlider','IdleText',
-                   'AudioToggle','SoundToggle','AutoToggle','TestBtn','PauseBtn','SaveBtn','CloseBtn') { $u[$n] = $w.FindName($n) }
+                   'AudioToggle','SoundToggle','PullupToggle','AutoToggle','TestBtn','PauseBtn','SaveBtn','CloseBtn') { $u[$n] = $w.FindName($n) }
     $S.Win = $w
 
     $w.Icon = [System.Windows.Interop.Imaging]::CreateBitmapSourceFromHIcon($S.Icon.Handle, [System.Windows.Int32Rect]::Empty,
@@ -436,21 +480,24 @@ function Open-Settings {
     $u.IdleText.Text = "$($S.Cfg.IdleResetMinutes) мин"
     $u.AudioToggle.IsChecked = $S.Cfg.AudioCheck
     $u.SoundToggle.IsChecked = $S.Cfg.Sound
+    $u.PullupToggle.IsChecked = $S.Cfg.PullupBar
     $u.AutoToggle.IsChecked = (Test-Autostart)
 
     $u.Header.Add_MouseLeftButtonDown({ try { $S.Win.DragMove() } catch {} })
     $u.CloseBtn.Add_Click({ $S.Win.Close() })
-    $u.TestBtn.Add_Click({ Show-Reminder ([int]$S.Ui.IntervalSlider.Value) ([bool]$S.Ui.SoundToggle.IsChecked) })
+    $u.TestBtn.Add_Click({ Show-Reminder ([int]$S.Ui.IntervalSlider.Value) ([bool]$S.Ui.SoundToggle.IsChecked) ([bool]$S.Ui.PullupToggle.IsChecked) })
     $u.PauseBtn.Add_Click({ Switch-Pause })
     $u.SaveBtn.Add_Click({
         $S.Cfg.Minutes = [int]$S.Ui.IntervalSlider.Value
         $S.Cfg.IdleResetMinutes = [int]$S.Ui.IdleSlider.Value
         $S.Cfg.AudioCheck = [bool]$S.Ui.AudioToggle.IsChecked
         $S.Cfg.Sound = [bool]$S.Ui.SoundToggle.IsChecked
+        if ($S.Cfg.PullupBar -ne [bool]$S.Ui.PullupToggle.IsChecked) { $bag.Clear() }   # пересобрать список упражнений
+        $S.Cfg.PullupBar = [bool]$S.Ui.PullupToggle.IsChecked
         Save-Settings
         try { Set-Autostart ([bool]$S.Ui.AutoToggle.IsChecked) } catch { Write-Log "автозапуск: $_" }
-        Write-Log ("настройки: каждые {0} мин, отошёл через {1} мин, звук как присутствие: {2}, сигнал: {3}, автозапуск: {4}" -f
-            $S.Cfg.Minutes, $S.Cfg.IdleResetMinutes, $S.Cfg.AudioCheck, $S.Cfg.Sound, (Test-Autostart))
+        Write-Log ("настройки: каждые {0} мин, отошёл через {1} мин, звук как присутствие: {2}, сигнал: {3}, турник: {4}, автозапуск: {5}" -f
+            $S.Cfg.Minutes, $S.Cfg.IdleResetMinutes, $S.Cfg.AudioCheck, $S.Cfg.Sound, $S.Cfg.PullupBar, (Test-Autostart))
         $S.Win.Close()
     })
     $w.Add_KeyDown({ if ($_.Key -eq 'Escape') { $S.Win.Close() } })
